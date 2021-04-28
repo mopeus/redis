@@ -183,6 +183,7 @@ struct redisServer server; /* Server global state */
  *    TYPE, EXPIRE*, PEXPIRE*, TTL, PTTL, ...
  */
 
+// 这里能看到所有redisClient和实现命令的映射，当然也可以这个找到所有的命令实现
 struct redisCommand redisCommandTable[] = {
     {"module",moduleCommand,-2,
      "admin no-script",

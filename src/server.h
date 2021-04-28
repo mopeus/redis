@@ -659,12 +659,11 @@ typedef struct clientReplyBlock {
     char buf[];
 } clientReplyBlock;
 
-/* Redis database representation. There are multiple databases identified
- * by integers from 0 (the default database) up to the max configured
- * database. The database number is the 'id' field in the structure. */
+
+// 一个数据db的结构， 整个database有多个redisDB  通过select来切换
 typedef struct redisDb {
-    dict *dict;                 /* The keyspace for this DB */
-    dict *expires;              /* Timeout of keys with a timeout set */
+    dict *dict;                 // 实际存的 k-v数据对 以字典形式保存
+    dict *expires;              // 过期键会单独在这里存一份
     dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
     dict *ready_keys;           /* Blocked keys that received a PUSH */
     dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
@@ -794,11 +793,12 @@ typedef struct {
                                       need more reserved IDs use UINT64_MAX-1,
                                       -2, ... and so forth. */
 
+// 客户端
 typedef struct client {
     uint64_t id;            /* Client incremental unique ID. */
     connection *conn;
     int resp;               /* RESP protocol version. Can be 2 or 3. */
-    redisDb *db;            /* Pointer to currently SELECTed DB. */
+    redisDb *db;            // 通过select命令指定的当前数据库
     robj *name;             /* As set by CLIENT SETNAME. */
     sds querybuf;           /* Buffer we use to accumulate client queries. */
     size_t qb_pos;          /* The position we have read in querybuf. */
@@ -1076,6 +1076,7 @@ struct redisServer {
     mode_t umask;               /* The umask value of the process on startup */
     int hz;                     /* serverCron() calls frequency in hertz */
     int in_fork_child;          /* indication that this is a fork child */
+    // 数据库数组
     redisDb *db;
     dict *commands;             /* Command table */
     dict *orig_commands;        /* Command table before command renaming. */

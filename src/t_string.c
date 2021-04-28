@@ -65,9 +65,11 @@ static int checkStringLength(client *c, long long size) {
 #define OBJ_SET_PX (1<<3)          /* Set if time in ms in given */
 #define OBJ_SET_KEEPTTL (1<<4)     /* Set and keep the ttl */
 
+// 设置键 
 void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire, int unit, robj *ok_reply, robj *abort_reply) {
-    long long milliseconds = 0; /* initialized to avoid any harmness warning */
+    long long milliseconds = 0; // 初始化过期时间
 
+    // expire 转为longlong
     if (expire) {
         if (getLongLongFromObjectOrReply(c, expire, &milliseconds, NULL) != C_OK)
             return;
@@ -85,7 +87,9 @@ void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire,
         return;
     }
     genericSetKey(c,c->db,key,val,flags & OBJ_SET_KEEPTTL,1);
+    // dirty修改数 和rdb相关
     server.dirty++;
+    // 设置过期
     if (expire) setExpire(c,c->db,key,mstime()+milliseconds);
     notifyKeyspaceEvent(NOTIFY_STRING,"set",key,c->db->id);
     if (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,

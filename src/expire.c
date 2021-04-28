@@ -54,6 +54,7 @@
 int activeExpireCycleTryExpire(redisDb *db, dictEntry *de, long long now) {
     long long t = dictGetSignedIntegerVal(de);
     if (now > t) {
+        // 过期了
         sds key = dictGetKey(de);
         robj *keyobj = createStringObject(key,sdslen(key));
 
@@ -250,6 +251,7 @@ void activeExpireCycle(int type) {
             long max_buckets = num*20;
             long checked_buckets = 0;
 
+            // 检查这个db的expires的键，但每次检查有上限 max_buckets
             while (sampled < num && checked_buckets < max_buckets) {
                 for (int table = 0; table < 2; table++) {
                     if (table == 1 && !dictIsRehashing(db->expires)) break;
@@ -278,6 +280,7 @@ void activeExpireCycle(int type) {
                         sampled++;
                     }
                 }
+                // db会保存这个expire idx的具体序号
                 db->expires_cursor++;
             }
             total_expired += expired;
@@ -496,6 +499,8 @@ int checkAlreadyExpired(long long when) {
  *
  * unit is either UNIT_SECONDS or UNIT_MILLISECONDS, and is only used for
  * the argv[2] parameter. The basetime is always specified in milliseconds. */
+
+
 void expireGenericCommand(client *c, long long basetime, int unit) {
     robj *key = c->argv[1], *param = c->argv[2];
     long long when; /* unix time in milliseconds when the key will expire. */
@@ -512,6 +517,7 @@ void expireGenericCommand(client *c, long long basetime, int unit) {
         return;
     }
 
+    // 发现已经过期了
     if (checkAlreadyExpired(when)) {
         robj *aux;
 
@@ -528,6 +534,7 @@ void expireGenericCommand(client *c, long long basetime, int unit) {
         addReply(c, shared.cone);
         return;
     } else {
+        // 没过期开始设值
         setExpire(c,c->db,key,when);
         addReply(c,shared.cone);
         signalModifiedKey(c,c->db,key);
@@ -537,11 +544,13 @@ void expireGenericCommand(client *c, long long basetime, int unit) {
     }
 }
 
+// 并没有和书上所说所有都调用pexpreatCommand 
 /* EXPIRE key seconds */
 void expireCommand(client *c) {
     expireGenericCommand(c,mstime(),UNIT_SECONDS);
 }
 
+// 存的是绝对时间戳
 /* EXPIREAT key time */
 void expireatCommand(client *c) {
     expireGenericCommand(c,0,UNIT_SECONDS);

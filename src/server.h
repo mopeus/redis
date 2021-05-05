@@ -212,9 +212,9 @@ extern int configOOMScoreAdjValuesDefaults[CONFIG_OOM_COUNT];
 #define AOF_ON 1              /* AOF is on */
 #define AOF_WAIT_REWRITE 2    /* AOF waits rewrite to start appending */
 
-/* Client flags */
-#define CLIENT_SLAVE (1<<0)   /* This client is a repliaca */
-#define CLIENT_MASTER (1<<1)  /* This client is a master */
+// 客户端的标志位，都是预处理变量。 表示了客户端的身份
+#define CLIENT_SLAVE (1<<0)   // 代表这个客户端其实是从服务器
+#define CLIENT_MASTER (1<<1)  // 主从服务器进行复制操作时，主服务器会成为从服务器的客户端， 就会打上这个标志
 #define CLIENT_MONITOR (1<<2) /* This client is a slave monitor, see MONITOR */
 #define CLIENT_MULTI (1<<3)   /* This client is in a MULTI context */
 #define CLIENT_BLOCKED (1<<4) /* The client is waiting in a blocking operation */
@@ -799,17 +799,21 @@ typedef struct client {
     connection *conn;
     int resp;               /* RESP protocol version. Can be 2 or 3. */
     redisDb *db;            // 通过select命令指定的当前数据库
-    robj *name;             /* As set by CLIENT SETNAME. */
-    sds querybuf;           /* Buffer we use to accumulate client queries. */
+    robj *name;             // 客户端设置的名字
+    sds querybuf;           // 输入缓冲区，临时存储命令输入
     size_t qb_pos;          /* The position we have read in querybuf. */
     sds pending_querybuf;   /* If this client is flagged as master, this buffer
                                represents the yet not applied portion of the
                                replication stream that we are receiving from
                                the master. */
     size_t querybuf_peak;   /* Recent (100ms or more) peak of querybuf size. */
+
+    // 最后一条命令会解析成argc 和 argv
     int argc;               /* Num of arguments of current command. */
     robj **argv;            /* Arguments of current command. */
     size_t argv_len_sum;    /* Sum of lengths of objects in argv list. */
+
+    // 会将argv[0] 查redisServer中的cmds映射表找到最终要执行的函数
     struct redisCommand *cmd, *lastcmd;  /* Last command executed. */
     user *user;             /* User associated with this connection. If the
                                user is set to NULL the connection can do
@@ -817,14 +821,17 @@ typedef struct client {
     int reqtype;            /* Request protocol type: PROTO_REQ_* */
     int multibulklen;       /* Number of multi bulk arguments left to read. */
     long bulklen;           /* Length of bulk argument in multi bulk request. */
+    // 不固定大小的输出缓冲区
     list *reply;            /* List of reply objects to send to the client. */
     unsigned long long reply_bytes; /* Tot bytes of objects in reply list. */
     size_t sentlen;         /* Amount of bytes already sent in the current
                                buffer or object being sent. */
-    time_t ctime;           /* Client creation time. */
+    time_t ctime;           // 客户端创建时间
+    // 上次交互的时间
     time_t lastinteraction; /* Time of the last interaction, used for timeout */
     time_t obuf_soft_limit_reached_time;
     uint64_t flags;         /* Client flags: CLIENT_* macros. */
+    // 权限认证
     int authenticated;      /* Needed when the default user requires auth. */
     int replstate;          /* Replication state if this is a slave. */
     int repl_put_online_on_ack; /* Install slave write handler on first ACK. */
@@ -876,7 +883,7 @@ typedef struct client {
      * before adding it the new value. */
     uint64_t client_cron_last_memory_usage;
     int      client_cron_last_memory_type;
-    /* Response buffer */
+    // 固定大小回复的缓冲区，还有一个不固定大小的回复缓冲区是reply
     int bufpos;
     char buf[PROTO_REPLY_CHUNK_BYTES];
 } client;
@@ -1078,7 +1085,7 @@ struct redisServer {
     int in_fork_child;          /* indication that this is a fork child */
     // 数据库数组
     redisDb *db;
-    dict *commands;             /* Command table */
+    dict *commands;             // 命令列表，到时候通过这个字典把argv[0]映射到具体的命令函数
     dict *orig_commands;        /* Command table before command renaming. */
     aeEventLoop *el;
     _Atomic unsigned int lruclock; /* Clock for LRU eviction */
@@ -1117,7 +1124,7 @@ struct redisServer {
     int sofd;                   /* Unix socket file descriptor */
     int cfd[CONFIG_BINDADDR_MAX];/* Cluster bus listening socket */
     int cfd_count;              /* Used slots in cfd[] */
-    list *clients;              /* List of active clients */
+    list *clients;              // 连接的客户端状态，里面ListNode 的value的值就是client类型的
     list *clients_to_close;     /* Clients to close asynchronously */
     list *clients_pending_write; /* There is to write or install handler. */
     list *clients_pending_read;  /* Client has pending read socket buffers. */
@@ -1437,7 +1444,7 @@ struct redisServer {
     int cluster_config_file_lock_fd;   /* cluster config fd, will be flock */
     /* Scripting */
     lua_State *lua; /* The Lua interpreter. We use just one for all clients */
-    client *lua_client;   /* The "fake client" to query Redis from Lua */
+    client *lua_client;   // 执行lua命令的伪客户端，他会一直存在，直到服务器关闭
     client *lua_caller;   /* The client running EVAL right now, or NULL */
     char* lua_cur_script; /* SHA1 of the script currently running, or NULL */
     dict *lua_scripts;         /* A dictionary of SHA1 -> Lua scripts */

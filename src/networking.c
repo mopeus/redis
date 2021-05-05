@@ -88,6 +88,7 @@ int listMatchObjects(void *a, void *b) {
 /* This function links the client to the global linked list of clients.
  * unlinkClient() does the opposite, among other things. */
 void linkClient(client *c) {
+    // 将客户端作为value存进链表里
     listAddNodeTail(server.clients,c);
     /* Note that we remember the linked list node where the client is stored,
      * this way removing the client in unlinkClient() will not require
@@ -1587,6 +1588,7 @@ void unprotectClient(client *c) {
  * have a well formed command. The function also returns C_ERR when there is
  * a protocol error: in such a case the client structure is setup to reply
  * with the error and close the connection. */
+// 解析 client.querybuf 为 argc 和 argv
 int processInlineBuffer(client *c) {
     char *newline;
     int argc, j, linefeed_chars = 1;
@@ -1650,7 +1652,7 @@ int processInlineBuffer(client *c) {
         c->argv_len_sum = 0;
     }
 
-    /* Create redis objects for all arguments. */
+    // 解析成功，给client.argc client.argv赋值
     for (c->argc = 0, j = 0; j < argc; j++) {
         c->argv[c->argc] = createObject(OBJ_STRING,argv[j]);
         c->argc++;
@@ -1921,7 +1923,7 @@ int processPendingCommandsAndResetClient(client *c) {
  * or because a client was blocked and later reactivated, so there could be
  * pending query buffer, already representing a full command, to process. */
 void processInputBuffer(client *c) {
-    /* Keep processing while there is something in the input buffer */
+    // querybuf可以存多条命令，一次处理一条命令，不断反复直到缓冲区没有命令
     while(c->qb_pos < sdslen(c->querybuf)) {
         /* Return if clients are paused. */
         if (!(c->flags & CLIENT_SLAVE) && 
@@ -1990,6 +1992,7 @@ void processInputBuffer(client *c) {
             }
 
             /* We are finally ready to execute the command. */
+            // 执行命令
             if (processCommandAndResetClient(c) == C_ERR) {
                 /* If the client is no longer valid, we avoid exiting this
                  * loop and trimming the client buffer later. So we return

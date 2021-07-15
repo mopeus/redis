@@ -94,9 +94,28 @@ void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire,
     notifyKeyspaceEvent(NOTIFY_STRING,"set",key,c->db->id);
     if (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,
         "expire",key,c->db->id);
-    addReply(c, ok_reply ? ok_reply : shared.ok);
+    
+    robj *succReply = createObject(OBJ_STRING,sdsnew("+SET OK\r\n"));
+    // addReply(c, ok_reply ? ok_reply : shared.ok);
+    addReply(c, ok_reply ? ok_reply : succReply);
 }
 
+// 自定义DefaultSet
+void setOrDefaultCommand(client *c) {
+    int flags = OBJ_SET_NO_FLAGS;
+    robj *key = c -> argv[1];
+    robj *val = c -> argv[2];
+    if (val) {
+        val = createObject(OBJ_STRING, sdsnew("DefaultVal"));
+    }
+    genericSetKey(c,c->db,key,val,flags & OBJ_SET_KEEPTTL,1);
+    server.dirty++;
+    robj *succReply = createObject(OBJ_STRING,sdsnew("+SET OK\r\n"));
+    // addReply(c, ok_reply ? ok_reply : shared.ok);
+    addReply(c, succReply);
+}
+
+// 设置命令 这是一个通用命令所以很多判断
 /* SET key value [NX] [XX] [KEEPTTL] [EX <seconds>] [PX <milliseconds>] */
 void setCommand(client *c) {
     int j;

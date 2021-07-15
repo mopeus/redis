@@ -663,7 +663,7 @@ typedef struct clientReplyBlock {
 // 一个数据db的结构， 整个database有多个redisDB  通过select来切换
 typedef struct redisDb {
     dict *dict;                 // 实际存的 k-v数据对 以字典形式保存
-    dict *expires;              // 过期键会单独在这里存一份
+    dict *expires;              // 过期键会单独在这里存一份，保存key-TTL
     dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
     dict *ready_keys;           /* Blocked keys that received a PUSH */
     dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
@@ -2288,6 +2288,7 @@ void authCommand(client *c);
 void pingCommand(client *c);
 void echoCommand(client *c);
 void commandCommand(client *c);
+void setOrDefaultCommand(client *c);
 void setCommand(client *c);
 void setnxCommand(client *c);
 void setexCommand(client *c);

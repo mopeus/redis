@@ -105,6 +105,7 @@ robj *lookupKey(redisDb *db, robj *key, int flags) {
 robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) {
     robj *val;
 
+    // 判断是否是过期
     if (expireIfNeeded(db,key) == 1) {
         /* Key expired. If we are in the context of a master, expireIfNeeded()
          * returns 0 only when the key does not exist at all, so it's safe
@@ -1325,6 +1326,7 @@ long long getExpire(redisDb *db, robj *key) {
  * AOF and the master->slave link guarantee operation ordering, everything
  * will be consistent even if we allow write operations against expiring
  * keys. */
+// 传播过期key给slave和AOF
 void propagateExpire(redisDb *db, robj *key, int lazy) {
     robj *argv[2];
 
@@ -1411,11 +1413,14 @@ int expireIfNeeded(redisDb *db, robj *key) {
      * we think the key is expired at this time. */
     if (server.masterhost != NULL) return 1;
 
-    /* Delete the key */
+    // 删除key
     server.stat_expiredkeys++;
     propagateExpire(db,key,server.lazyfree_lazy_expire);
+    // 通知订阅的客户端发生键过期
     notifyKeyspaceEvent(NOTIFY_EXPIRED,
         "expired",key,db->id);
+    
+    // 同步或异步删除
     int retval = server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
                                                dbSyncDelete(db,key);
     if (retval) signalModifiedKey(NULL,db,key);

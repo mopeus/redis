@@ -199,6 +199,10 @@ struct redisCommand redisCommandTable[] = {
      "write use-memory @string",
      0,NULL,1,1,1,0,0,0},
 
+     {"setOrDefault", setOrDefaultCommand, -2, 
+     "write use-memory @string",
+     0,NULL,1,1,1,0,0,0},
+
     {"setnx",setnxCommand,3,
      "write use-memory fast @string",
      0,NULL,1,1,1,0,0,0},
@@ -3582,6 +3586,7 @@ int processCommand(client *c) {
         return C_OK;
     } else if ((c->cmd->arity > 0 && c->cmd->arity != c->argc) ||
                (c->argc < -c->cmd->arity)) {
+        // 命令调用的参数和arity不同
         rejectCommandFormat(c,"wrong number of arguments for '%s' command",
             c->cmd->name);
         return C_OK;

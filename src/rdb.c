@@ -1310,7 +1310,7 @@ werr: /* Write error. */
     return C_ERR;
 }
 
-/* Save the DB on disk. Return C_ERR on error, C_OK on success. */
+// BGSAVE 或 SAVE 最终都走这里 生成RDB
 int rdbSave(char *filename, rdbSaveInfo *rsi) {
     char tmpfile[256];
     char cwd[MAXPATHLEN]; /* Current working dir path for error messages. */
@@ -1365,6 +1365,7 @@ int rdbSave(char *filename, rdbSaveInfo *rsi) {
     }
 
     serverLog(LL_NOTICE,"DB saved on disk");
+    // 将dirty reset 为0
     server.dirty = 0;
     server.lastsave = time(NULL);
     server.lastbgsave_status = C_OK;
@@ -1387,7 +1388,7 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
     server.dirty_before_bgsave = server.dirty;
     server.lastbgsave_try = time(NULL);
     openChildInfoPipe();
-
+    // fork创建进程
     if ((childpid = redisFork(CHILD_TYPE_RDB)) == 0) {
         int retval;
 
@@ -2602,7 +2603,9 @@ int rdbSaveToSlavesSockets(rdbSaveInfo *rsi) {
     return C_OK; /* Unreached. */
 }
 
+// 保存数据到RDB中，阻塞形式
 void saveCommand(client *c) {
+    // 判断是否有bgsave的进程
     if (server.rdb_child_pid != -1) {
         addReplyError(c,"Background save already in progress");
         return;
@@ -2637,6 +2640,7 @@ void bgsaveCommand(client *c) {
     if (server.rdb_child_pid != -1) {
         addReplyError(c,"Background save already in progress");
     } else if (hasActiveChildProcess()) {
+        // 有其他BGSAVE 进程或者AOF进程会等到他们结束后才允许
         if (schedule) {
             server.rdb_bgsave_scheduled = 1;
             addReplyStatus(c,"Background saving scheduled");

@@ -1856,7 +1856,7 @@ void checkChildrenDone(void) {
  * a macro is used: run_with_period(milliseconds) { .... }
  */
 
-// serverCon
+// serverCon 定期执行的函数
 int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     int j;
     UNUSED(eventLoop);
@@ -2000,6 +2000,8 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
              * the given amount of seconds, and if the latest bgsave was
              * successful or if, in case of an error, at least
              * CONFIG_BGSAVE_RETRY_DELAY seconds already elapsed. */
+
+            // 如果修改次数或者保存间隔大于saveparam设定的时间，就会主动制定rdbSaveBackground函数
             if (server.dirty >= sp->changes &&
                 server.unixtime-server.lastsave > sp->seconds &&
                 (server.unixtime-server.lastbgsave_try >
@@ -2983,7 +2985,7 @@ void initServer(void) {
      * operations incrementally, like clients timeout, eviction of unaccessed
      * expired keys and so forth. */
 
-    // 将serverCon当作一个时间处理
+    // 将serverCon当作一个时间事件处理
     if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         serverPanic("Can't create event loop timers.");
         exit(1);

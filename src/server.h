@@ -2317,7 +2317,7 @@ void dbsizeCommand(client *c);
 void lastsaveCommand(client *c);
 void saveCommand(client *c);
 void bgsaveCommand(client *c);
-void bgrewriteaofCommand(client *c);
+void bgrewriteaofCommand(client *c);  // 开始aof重写
 void shutdownCommand(client *c);
 void moveCommand(client *c);
 void renameCommand(client *c);

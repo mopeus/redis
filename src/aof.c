@@ -1669,6 +1669,7 @@ void bgrewriteaofCommand(client *c) {
         addReplyError(c,"Background append only file rewriting already in progress");
     } else if (hasActiveChildProcess()) {
         server.aof_rewrite_scheduled = 1;
+        // bgsave 的原因，将执行aof重写的方法放入serverCon开始的时候
         addReplyStatus(c,"Background append only file rewriting scheduled");
     } else if (rewriteAppendOnlyFileBackground() == C_OK) {
         addReplyStatus(c,"Background append only file rewriting started");
